@@ -1,38 +1,6 @@
-FROM jenkinsci/jnlp-slave
+FROM jenkinsci/jnlp-slave:alpine
 
 USER root
-
-RUN apt-get update \
-	&& apt-get install -y --no-install-recommends \
-		bzip2 \
-		ca-certificates \
-		libffi-dev \
-		libgdbm3 \
-		libssl-dev \
-		libyaml-dev \
-		procps \
-		zlib1g-dev \
-        build-essential \
-        libaio1 \
-        libaio-dev \
-		autoconf \
-		bison \
-		dpkg-dev \
-		gcc \
-		libbz2-dev \
-		libgdbm-dev \
-		libglib2.0-dev \
-		libncurses-dev \
-		libreadline-dev \
-		libxml2-dev \
-		libxslt-dev \
-		make \
-		ruby \
-		wget \
-		xz-utils \
-		zip \
-		unzip \
-	&& rm -rf /var/lib/apt/lists/*
 
 # skip installing gem documentation
 RUN mkdir -p /usr/local/etc \
@@ -48,7 +16,36 @@ ENV RUBYGEMS_VERSION 2.6.13
 
 # some of ruby's build scripts are written in ruby
 #   we purge system ruby later to make sure our final image uses what we just built
+# readline-dev vs libedit-dev: https://bugs.ruby-lang.org/issues/11869 and https://github.com/docker-library/ruby/issues/75
 RUN set -ex \
+	\
+	&& apk add --no-cache --virtual .ruby-builddeps \
+		autoconf \
+		bison \
+		bzip2 \
+		bzip2-dev \
+		ca-certificates \
+		coreutils \
+		dpkg-dev dpkg \
+		gcc \
+		gdbm-dev \
+		glib-dev \
+		libc-dev \
+		libffi-dev \
+		libressl \
+		libressl-dev \
+		libxml2-dev \
+		libxslt-dev \
+		linux-headers \
+		make \
+		ncurses-dev \
+		procps \
+		readline-dev \
+		ruby \
+		tar \
+		xz \
+		yaml-dev \
+		zlib-dev \
 	\
 	&& wget -O ruby.tar.xz "https://cache.ruby-lang.org/pub/ruby/${RUBY_MAJOR%-rc}/ruby-$RUBY_VERSION.tar.xz" \
 	&& echo "$RUBY_DOWNLOAD_SHA256 *ruby.tar.xz" | sha256sum -c - \
@@ -70,6 +67,8 @@ RUN set -ex \
 	\
 	&& autoconf \
 	&& gnuArch="$(dpkg-architecture --query DEB_BUILD_GNU_TYPE)" \
+# the configure script does not detect isnan/isinf as macros
+	&& export ac_cv_func_isnan=yes ac_cv_func_isinf=yes \
 	&& ./configure \
 		--build="$gnuArch" \
 		--disable-install-doc \
@@ -77,10 +76,22 @@ RUN set -ex \
 	&& make -j "$(nproc)" \
 	&& make install \
 	\
-	&& dpkg-query --show --showformat '${package}\n' \
-		| grep -P '^libreadline\d+$' \
-		| xargs apt-mark manual \
-	# && apt-get purge -y --auto-remove $buildDeps \
+	&& runDeps="$( \
+		scanelf --needed --nobanner --recursive /usr/local \
+			| awk '{ gsub(/,/, "\nso:", $2); print "so:" $2 }' \
+			| sort -u \
+			| xargs -r apk info --installed \
+			| sort -u \
+	)" \
+	&& apk add --virtual .ruby-rundeps $runDeps \
+		bzip2 \
+		ca-certificates \
+		libffi-dev \
+		libressl-dev \
+		procps \
+		yaml-dev \
+		zlib-dev \
+	&& apk del .ruby-builddeps \
 	&& cd / \
 	&& rm -r /usr/src/ruby \
 	\
@@ -101,4 +112,4 @@ ENV PATH $BUNDLE_BIN:$PATH
 RUN mkdir -p "$GEM_HOME" "$BUNDLE_BIN" \
 	&& chmod 777 "$GEM_HOME" "$BUNDLE_BIN"
 
-user jenkins
+USER jenkins

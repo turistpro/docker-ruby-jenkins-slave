@@ -1,0 +1,20 @@
+FROM turistpro/ruby-jenins-slave:2.4.2
+
+USER root
+
+COPY instantclient-basic-linux.x64-12.2.0.1.0.zip ./
+COPY instantclient-sdk-linux.x64-12.2.0.1.0.zip ./
+COPY instantclient-sqlplus-linux.x64-12.2.0.1.0.zip ./
+RUN unzip instantclient-basic-linux.x64-12.2.0.1.0.zip && \
+    unzip instantclient-sdk-linux.x64-12.2.0.1.0.zip && \
+    unzip instantclient-sqlplus-linux.x64-12.2.0.1.0.zip && \
+    mv instantclient_12_2/ /usr/lib/ && \
+    rm -rf instantclient-*.zip && \
+    ln -s /usr/lib/instantclient_12_2/libclntsh.so.12.1 /usr/lib/instantclient_12_2/libclntsh.so
+
+ENV ORACLE_BASE /usr/lib/instantclient_12_2
+ENV LD_LIBRARY_PATH /usr/lib/instantclient_12_2
+ENV TNS_ADMIN /usr/lib/instantclient_12_2
+ENV ORACLE_HOME /usr/lib/instantclient_12_2
+
+USER jenkins
