@@ -1,4 +1,4 @@
-FROM turistpro/ruby-jenins-slave:2.4.2
+FROM turistpro/ruby-jenins-slave:2.5.0
 
 USER root
 
