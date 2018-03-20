@@ -2,37 +2,59 @@ FROM jenkinsci/jnlp-slave
 
 USER root
 
-RUN apt-get update \
-	&& apt-get install -y --no-install-recommends \
-		bzip2 \
-		ca-certificates \
-		libffi-dev \
-		libgdbm3 \
-		libssl-dev \
-		libyaml-dev \
-		procps \
-		zlib1g-dev \
-        build-essential \
-        libaio1 \
-        libaio-dev \
+RUN set -ex; \
+	apt-get update; \
+	apt-get install -y --no-install-recommends \
 		autoconf \
-		bison \
+		automake \
+		bzip2 \
 		dpkg-dev \
+		file \
+		g++ \
 		gcc \
+		imagemagick \
 		libbz2-dev \
+		libc6-dev \
+		libcurl4-openssl-dev \
+		libdb-dev \
+		libevent-dev \
+		libffi-dev \
 		libgdbm-dev \
+		libgeoip-dev \
 		libglib2.0-dev \
-		libncurses-dev \
+		libjpeg-dev \
+		libkrb5-dev \
+		liblzma-dev \
+		libmagickcore-dev \
+		libmagickwand-dev \
+		libncurses5-dev \
+		libncursesw5-dev \
+		libpng-dev \
+		libpq-dev \
 		libreadline-dev \
+		libsqlite3-dev \
+		libssl-dev \
+		libtool \
+		libwebp-dev \
 		libxml2-dev \
 		libxslt-dev \
+		libyaml-dev \
 		make \
-		ruby \
-		wget \
+		patch \
 		xz-utils \
-		zip \
-		unzip \
-	&& rm -rf /var/lib/apt/lists/*
+		zlib1g-dev \
+		\
+# https://lists.debian.org/debian-devel-announce/2016/09/msg00000.html
+		$( \
+# if we use just "apt-cache show" here, it returns zero because "Can't select versions from package 'libmysqlclient-dev' as it is purely virtual", hence the pipe to grep
+			if apt-cache show 'default-libmysqlclient-dev' 2>/dev/null | grep -q '^Version:'; then \
+				echo 'default-libmysqlclient-dev'; \
+			else \
+				echo 'libmysqlclient-dev'; \
+			fi \
+		) \
+	; \
+	rm -rf /var/lib/apt/lists/*
 
 # skip installing gem documentation
 RUN mkdir -p /usr/local/etc \
