@@ -39,6 +39,9 @@ RUN set -ex; \
 		libxml2-dev \
 		libxslt-dev \
 		libyaml-dev \
+                # oracle
+                libaio1 \
+                libaio-dev \
 		make \
 		patch \
 		xz-utils \
